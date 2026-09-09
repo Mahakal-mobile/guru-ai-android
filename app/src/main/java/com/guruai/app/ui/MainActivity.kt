@@ -64,6 +64,14 @@ class MainActivity : AppCompatActivity() {
         tvChat.setTextColor(textPrimary)
         etInput.setTextColor(textPrimary)
         etInput.setBackgroundColor(surface)
+
+        val btnSettings = findViewById<Button>(R.id.btnSettings)
+        btnSettings.setBackgroundColor(accent)
+        btnSettings.setTextColor(bg)
+
+        val btnSend = findViewById<Button>(R.id.btnSend)
+        btnSend.setBackgroundColor(accent)
+        btnSend.setTextColor(bg)
     }
 
     private fun refreshStatus() {
