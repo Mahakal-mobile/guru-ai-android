@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0A0A0A"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Master Settings"
+            android:textColor="#F5C518"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:paddingBottom="12dp" />
+
+        <LinearLayout
+            android:id="@+id/lockPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Master lock · enter password"
+                android:textColor="#A0A0A0"
+                android:paddingBottom="8dp" />
+
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:hint="@string/master_password_hint"
+                android:textColor="#F5F5F5"
+                android:textColorHint="#666666"
+                android:background="#1A1A1A"
+                android:padding="12dp" />
+
+            <TextView
+                android:id="@+id/tvPassError"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#EF4444"
+                android:textSize="12sp"
+                android:visibility="gone"
+                android:text="Wrong password"
+                android:paddingTop="6dp" />
+
+            <Button
+                android:id="@+id/btnUnlock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/unlock"
+                android:layout_marginTop="12dp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/contentPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Device: Nothing Phone (3a) Lite · Nothing OS"
+                android:textColor="#A0A0A0"
+                android:textSize="13sp"
+                android:paddingBottom="16dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/box1_gemini"
+                android:textColor="#F5C518"
+                android:textStyle="bold"
+                android:paddingBottom="6dp" />
+
+            <EditText
+                android:id="@+id/etGemini"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:hint="AIza…"
+                android:textColor="#F5F5F5"
+                android:textColorHint="#666666"
+                android:background="#1A1A1A"
+                android:padding="12dp" />
+
+            <CheckBox
+                android:id="@+id/cbShowGemini"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Show key"
+                android:textColor="#A0A0A0" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/box2_messaging"
+                android:textColor="#F5C518"
+                android:textStyle="bold"
+                android:paddingTop="16dp"
+                android:paddingBottom="6dp" />
+
+            <EditText
+                android:id="@+id/etWhatsapp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:hint="WhatsApp Business token"
+                android:textColor="#F5F5F5"
+                android:textColorHint="#666666"
+                android:background="#1A1A1A"
+                android:padding="12dp" />
+
+            <EditText
+                android:id="@+id/etMail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword"
+                android:hint="Gmail / Mail token"
+                android:textColor="#F5F5F5"
+                android:textColorHint="#666666"
+                android:background="#1A1A1A"
+                android:padding="12dp"
+                android:layout_marginTop="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/box3_lock"
+                android:textColor="#F5C518"
+                android:textStyle="bold"
+                android:paddingTop="16dp"
+                android:paddingBottom="6dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="● Active · password gate enabled\nCloses when you leave Settings."
+                android:textColor="#22C55E"
+                android:background="#1A1A1A"
+                android:padding="12dp" />
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/save"
+                android:layout_marginTop="20dp" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
