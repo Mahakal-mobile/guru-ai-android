@@ -22,7 +22,7 @@ class GeminiClient(private val apiKey: String) {
             return "Gemini API key missing. Open Master Settings (password protected) and add your key."
         }
         val url =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=$apiKey"
 
         val contents = JSONArray()
         contents.put(
