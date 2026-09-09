@@ -1,5 +1,6 @@
 package com.guruai.app.ui
 
+import android.graphics.Color
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
@@ -7,6 +8,8 @@ import android.widget.Button
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -16,12 +19,16 @@ import com.guruai.app.util.Constants
 
 class SettingsActivity : AppCompatActivity() {
     private lateinit var prefs: Prefs
+    private var selectedTheme = 0
+    private lateinit var swatches: List<TextView>
+    private lateinit var tvThemeName: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
         prefs = Prefs(this)
 
+        val rootScroll = findViewById<ScrollView>(R.id.rootScroll)
         val lockPanel = findViewById<LinearLayout>(R.id.lockPanel)
         val contentPanel = findViewById<LinearLayout>(R.id.contentPanel)
         val etPassword = findViewById<EditText>(R.id.etPassword)
@@ -30,6 +37,23 @@ class SettingsActivity : AppCompatActivity() {
         val etWhatsapp = findViewById<EditText>(R.id.etWhatsapp)
         val etMail = findViewById<EditText>(R.id.etMail)
         val cbShowGemini = findViewById<CheckBox>(R.id.cbShowGemini)
+        tvThemeName = findViewById(R.id.tvThemeName)
+
+        val swScreenMonitor = findViewById<Switch>(R.id.swScreenMonitor)
+        val swWhatsappSync = findViewById<Switch>(R.id.swWhatsappSync)
+        val swEmailSync = findViewById<Switch>(R.id.swEmailSync)
+        val swAiOnline = findViewById<Switch>(R.id.swAiOnline)
+
+        swatches = listOf(
+            findViewById(R.id.swatch0),
+            findViewById(R.id.swatch1),
+            findViewById(R.id.swatch2),
+            findViewById(R.id.swatch3),
+            findViewById(R.id.swatch4)
+        )
+        swatches.forEachIndexed { index, view ->
+            view.setOnClickListener { selectTheme(index) }
+        }
 
         findViewById<Button>(R.id.btnUnlock).setOnClickListener {
             if (etPassword.text.toString() == Constants.MASTER_PASSWORD) {
@@ -38,6 +62,12 @@ class SettingsActivity : AppCompatActivity() {
                 etGemini.setText(prefs.geminiKey)
                 etWhatsapp.setText(prefs.whatsappToken)
                 etMail.setText(prefs.mailToken)
+                swScreenMonitor.isChecked = prefs.screenMonitorEnabled
+                swWhatsappSync.isChecked = prefs.whatsappSyncEnabled
+                swEmailSync.isChecked = prefs.emailSyncEnabled
+                swAiOnline.isChecked = prefs.aiOnlineMode
+                selectedTheme = prefs.themeIndex
+                selectTheme(selectedTheme)
                 tvPassError.visibility = View.GONE
             } else {
                 tvPassError.visibility = View.VISIBLE
@@ -56,8 +86,29 @@ class SettingsActivity : AppCompatActivity() {
             prefs.geminiKey = etGemini.text.toString().trim()
             prefs.whatsappToken = etWhatsapp.text.toString().trim()
             prefs.mailToken = etMail.text.toString().trim()
+            prefs.screenMonitorEnabled = swScreenMonitor.isChecked
+            prefs.whatsappSyncEnabled = swWhatsappSync.isChecked
+            prefs.emailSyncEnabled = swEmailSync.isChecked
+            prefs.aiOnlineMode = swAiOnline.isChecked
+            prefs.themeIndex = selectedTheme
             Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
             finish()
         }
+
+        applyTheme(rootScroll)
+    }
+
+    private fun selectTheme(index: Int) {
+        selectedTheme = index
+        val theme = Constants.THEMES[index]
+        tvThemeName.text = "Current: ${theme.name}"
+        swatches.forEachIndexed { i, view ->
+            view.alpha = if (i == index) 1f else 0.4f
+        }
+    }
+
+    private fun applyTheme(root: ScrollView) {
+        val theme = Constants.THEMES[prefs.themeIndex]
+        root.setBackgroundColor(Color.parseColor(theme.background))
     }
 }
