@@ -13,7 +13,7 @@ object Constants {
     const val KEY_WHATSAPP = "whatsapp_token"
     const val KEY_MAIL = "mail_token"
 
-    const val SYSTEM_PROMPT = """
+    val SYSTEM_PROMPT = """
 You are Guru AI – a warm, witty personal companion on a $DEVICE_MODEL ($DEVICE_OS).
 Speak naturally like a close friend. Be professional for work tasks.
 You know Nothing OS: Glyph, Nothing X, settings paths, permissions, battery, camera.
