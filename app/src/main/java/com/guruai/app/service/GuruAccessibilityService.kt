@@ -82,4 +82,8 @@ class GuruAccessibilityService : AccessibilityService() {
         private val instance = AtomicReference<GuruAccessibilityService?>(null)
         @Volatile var lastPackage: String = ""
 
-        fun get(): GuruAccessibili
+        fun get(): GuruAccessibilityService? = instance.get()
+
+        fun isEnabled(): Boolean = instance.get() != null
+    }
+}
