@@ -1,9 +1,11 @@
 package com.guruai.app.ui
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -11,6 +13,7 @@ import com.guruai.app.R
 import com.guruai.app.data.GeminiClient
 import com.guruai.app.data.Prefs
 import com.guruai.app.service.GuruAccessibilityService
+import com.guruai.app.util.Constants
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -35,18 +38,39 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         findViewById<Button>(R.id.btnSend).setOnClickListener { send() }
+
+        applyTheme()
     }
 
     override fun onResume() {
         super.onResume()
         refreshStatus()
+        applyTheme()
+    }
+
+    private fun applyTheme() {
+        val theme = Constants.THEMES[prefs.themeIndex]
+        val bg = Color.parseColor(theme.background)
+        val surface = Color.parseColor(theme.surface)
+        val accent = Color.parseColor(theme.accent)
+        val textPrimary = Color.parseColor(theme.textPrimary)
+        val textSecondary = Color.parseColor(theme.textSecondary)
+
+        findViewById<LinearLayout>(R.id.rootLayout).setBackgroundColor(bg)
+        findViewById<LinearLayout>(R.id.topBar).setBackgroundColor(surface)
+        findViewById<LinearLayout>(R.id.bottomBar).setBackgroundColor(surface)
+        findViewById<TextView>(R.id.tvTitle).setTextColor(accent)
+        tvStatus.setTextColor(textSecondary)
+        tvChat.setTextColor(textPrimary)
+        etInput.setTextColor(textPrimary)
+        etInput.setBackgroundColor(surface)
     }
 
     private fun refreshStatus() {
         val a11y = if (GuruAccessibilityService.isEnabled()) "on" else "off"
         val key = if (prefs.geminiKey.isNotBlank()) "Gemini OK" else "add Gemini key"
         val mode = if (prefs.aiOnlineMode) "Online" else "Offline"
-        tvStatus.text = "Accessibility: $a11y · $key · $mode · ${com.guruai.app.util.Constants.DEVICE_MODEL}"
+        tvStatus.text = "Accessibility: $a11y · $key · $mode · ${Constants.DEVICE_MODEL}"
     }
 
     private fun append(role: String, text: String) {
