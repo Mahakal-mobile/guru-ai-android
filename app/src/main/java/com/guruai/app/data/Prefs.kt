@@ -33,4 +33,8 @@ class Prefs(context: Context) {
     var aiOnlineMode: Boolean
         get() = sp.getBoolean(Constants.KEY_AI_ONLINE, true)
         set(v) = sp.edit().putBoolean(Constants.KEY_AI_ONLINE, v).apply()
+
+    var themeIndex: Int
+        get() = sp.getInt(Constants.KEY_THEME, 0)
+        set(v) = sp.edit().putInt(Constants.KEY_THEME, v).apply()
 }
