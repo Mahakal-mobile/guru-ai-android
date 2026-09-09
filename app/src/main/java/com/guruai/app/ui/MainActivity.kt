@@ -2,11 +2,9 @@ package com.guruai.app.ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.provider.Settings
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.guruai.app.R
@@ -37,11 +35,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         findViewById<Button>(R.id.btnSend).setOnClickListener { send() }
-        findViewById<Button>(R.id.btnReadScreen).setOnClickListener { readScreen() }
-        findViewById<Button>(R.id.btnOpenA11y).setOnClickListener {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            Toast.makeText(this, "Find Guru AI → turn On", Toast.LENGTH_LONG).show()
-        }
     }
 
     override fun onResume() {
@@ -67,37 +60,14 @@ class MainActivity : AppCompatActivity() {
         etInput.setText("")
         append("user", text)
 
-        // Special commands for native features
-        when {
-            text.equals("read screen", true) || text.contains("screen padho", true) -> {
-                readScreen()
-                return
-            }
+        if (!prefs.aiOnlineMode) {
+            append("assistant", "AI Online Mode is off. Turn it on in Settings to chat with Gemini, or ask about something saved locally.")
+            return
         }
 
         lifecycleScope.launch {
             val reply = withContext(Dispatchers.IO) {
                 GeminiClient(prefs.geminiKey).chat(text, history.dropLast(1))
-            }
-            append("assistant", reply)
-        }
-    }
-
-    private fun readScreen() {
-        val svc = GuruAccessibilityService.get()
-        if (svc == null) {
-            Toast.makeText(this, "Enable Accessibility for Guru AI first", Toast.LENGTH_LONG).show()
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            return
-        }
-        val screenText = svc.readVisibleText()
-        append("user", "[Read screen request]")
-        lifecycleScope.launch {
-            val reply = withContext(Dispatchers.IO) {
-                GeminiClient(prefs.geminiKey).chat(
-                    "The user asked to read the current screen. Here is the accessibility text snapshot:\n\n$screenText\n\nSummarize clearly and help with next steps. Device is Nothing Phone (3a) Lite.",
-                    history
-                )
             }
             append("assistant", reply)
         }
