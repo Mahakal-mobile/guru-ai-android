@@ -1,6 +1,7 @@
 package com.guruai.app.data
 
 import com.guruai.app.util.Constants
+import kotlinx.coroutines.delay
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -17,10 +18,33 @@ class GeminiClient(private val apiKey: String) {
 
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
 
-    fun chat(userMessage: String, history: List<Pair<String, String>> = emptyList()): String {
+    suspend fun chat(userMessage: String, history: List<Pair<String, String>> = emptyList()): String {
         if (apiKey.isBlank()) {
             return "Gemini API key missing. Open Master Settings (password protected) and add your key."
         }
+
+        var attempt = 0
+        var delayMs = 1000L
+        val maxAttempts = 4
+
+        while (attempt < maxAttempts) {
+            val result = callOnce(userMessage, history)
+            if (result.code != 429) {
+                return result.text
+            }
+            attempt++
+            if (attempt >= maxAttempts) {
+                return "Guru is getting a lot of requests right now (rate limit). Please try again in a minute."
+            }
+            delay(delayMs)
+            delayMs *= 2
+        }
+        return "Something went wrong. Please try again."
+    }
+
+    private data class Result(val text: String, val code: Int)
+
+    private fun callOnce(userMessage: String, history: List<Pair<String, String>>): Result {
         val url =
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=$apiKey"
 
@@ -64,9 +88,9 @@ class GeminiClient(private val apiKey: String) {
         client.newCall(request).execute().use { resp ->
             val raw = resp.body?.string().orEmpty()
             if (!resp.isSuccessful) {
-                return "Gemini error ${resp.code}: ${raw.take(200)}"
+                return Result("Gemini error ${resp.code}: ${raw.take(200)}", resp.code)
             }
-            return try {
+            val text = try {
                 val root = JSONObject(raw)
                 root.getJSONArray("candidates")
                     .getJSONObject(0)
@@ -77,6 +101,7 @@ class GeminiClient(private val apiKey: String) {
             } catch (e: Exception) {
                 "Could not parse reply: ${e.message}"
             }
+            return Result(text, resp.code)
         }
     }
 }
