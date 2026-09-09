@@ -45,7 +45,8 @@ class MainActivity : AppCompatActivity() {
     private fun refreshStatus() {
         val a11y = if (GuruAccessibilityService.isEnabled()) "on" else "off"
         val key = if (prefs.geminiKey.isNotBlank()) "Gemini OK" else "add Gemini key"
-        tvStatus.text = "Accessibility: $a11y · $key · ${com.guruai.app.util.Constants.DEVICE_MODEL}"
+        val mode = if (prefs.aiOnlineMode) "Online" else "Offline"
+        tvStatus.text = "Accessibility: $a11y · $key · $mode · ${com.guruai.app.util.Constants.DEVICE_MODEL}"
     }
 
     private fun append(role: String, text: String) {
