@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Guru AI</string>
+    <string name="accessibility_service_description">Guru AI uses Accessibility to read on-screen text when you ask and help type after your confirmation. For Nothing Phone (3a) Lite / Nothing OS.</string>
+    <string name="master_password_hint">Master password</string>
+    <string name="unlock">Unlock</string>
+    <string name="box1_gemini">Box 1 · Gemini API Key</string>
+    <string name="box2_messaging">Box 2 · WhatsApp and Mail</string>
+    <string name="box3_lock">Box 3 · Master Lock Status</string>
+    <string name="save">Save settings</string>
+</resources>
