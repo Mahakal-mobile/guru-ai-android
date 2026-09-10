@@ -225,8 +225,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             "com.guruai.app.fileprovider",
             imageFile
         )
-        takePictureLauncher.launch(cameraImageUri)
-    }
+        takePictureLauncher.launch(cameraImageUri!!)
 
     // ---------- Theme ----------
 
