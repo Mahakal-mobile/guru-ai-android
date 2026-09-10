@@ -1,10 +1,10 @@
 package com.guruai.app.agent
 
 class AgentLoop(
-    private val llmClient: (String) -> String,
+    private val llmClient: suspend (String) -> String,
     private val toolRegistry: ToolRegistry
 ) {
-    fun run(goal: String, maxSteps: Int = 6): String {
+    suspend fun run(goal: String, maxSteps: Int = 6): String {
         val state = AgentState(goal = goal)
 
         for (i in 1..maxSteps) {
@@ -13,11 +13,11 @@ class AgentLoop(
             val planPrompt = """
                 Goal: ${state.goal}
                 Completed steps: ${state.completedSteps}
-                Last result: ${state.lastResult ?: "कुछ नहीं"}
-                
-                अगला छोटा स्टेप बताओ (सिर्फ एक स्टेप)।
-                अगर गोल पूरा हो गया तो "FINISHED" लिखो।
-                अगर टूल चाहिए तो इस फॉर्मेट में लिखो:
+                Last result: ${state.lastResult ?: "none yet"}
+
+                Decide the next small step.
+                If the goal is fully done, reply with exactly: FINISHED
+                If you need a tool, reply in this exact format:
                 TOOL: tool_name | argument
             """.trimIndent()
 
@@ -29,7 +29,7 @@ class AgentLoop(
                 plan.contains("FINISHED", ignoreCase = true) -> {
                     state.isFinished = true
                 }
-                plan.startsWith("TOOL:", ignoreCase = true) -> {
+                plan.trim().startsWith("TOOL:", ignoreCase = true) -> {
                     val result = toolRegistry.execute(plan)
                     state.lastResult = result
                     state.completedSteps.add("$plan → $result")
@@ -43,9 +43,9 @@ class AgentLoop(
 
         val finalPrompt = """
             Goal: ${state.goal}
-            सारे स्टेप्स: ${state.completedSteps}
-            
-            अब फाइनल जवाब दो।
+            All steps taken: ${state.completedSteps}
+
+            Give the final answer to the user now, in a natural, friendly way.
         """.trimIndent()
 
         return llmClient(finalPrompt)
