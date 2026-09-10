@@ -18,7 +18,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
@@ -50,14 +49,19 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private val requestMicPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) startListening() else Toast.makeText(this, "Mic permission needed", Toast.LENGTH_SHORT).show()
+        if (granted) {
+            startListening()
+        } else {
+            Toast.makeText(this, "Mic permission needed", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private val takePictureLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
-        if (success && cameraImageUri != null) {
-            append("user", "[Photo captured] ${cameraImageUri}")
+        val uri = cameraImageUri
+        if (success && uri != null) {
+            append("user", "[Photo captured] $uri")
             append("assistant", "Got your photo! (Analyzing images is coming soon.)")
         }
     }
@@ -114,18 +118,18 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         applyTheme()
     }
 
-    // ---------- Mic (continuous toggle) ----------
-
     private fun toggleMic() {
         if (isListening) {
             stopListening()
         } else {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
-                != PackageManager.PERMISSION_GRANTED
-            ) {
-                requestMicPermission.launch(Manifest.permission.RECORD_AUDIO)
-            } else {
+            val granted = ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+            if (granted) {
                 startListening()
+            } else {
+                requestMicPermission.launch(Manifest.permission.RECORD_AUDIO)
             }
         }
     }
@@ -135,14 +139,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             Toast.makeText(this, "Speech recognition not available on this device", Toast.LENGTH_SHORT).show()
             return
         }
-        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
-        speechRecognizer?.setRecognitionListener(object : RecognitionListener {
+        val recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        speechRecognizer = recognizer
+        recognizer.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
             override fun onBufferReceived(buffer: ByteArray?) {}
+
             override fun onEndOfSpeech() {
-                // restart automatically to keep listening continuously
                 if (isListening) restartListening()
             }
 
@@ -174,10 +179,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun launchRecognizerIntent() {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-        }
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
         try {
             speechRecognizer?.startListening(intent)
         } catch (e: Exception) {
@@ -193,8 +197,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         speechRecognizer?.destroy()
         speechRecognizer = null
     }
-
-    // ---------- Attach menu ----------
 
     private fun showAttachMenu() {
         val dialog = BottomSheetDialog(this)
@@ -220,14 +222,14 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val imagesDir = File(getExternalFilesDir("images"), "")
         imagesDir.mkdirs()
         val imageFile = File(imagesDir, "guru_${System.currentTimeMillis()}.jpg")
-        cameraImageUri = FileProvider.getUriForFile(
+        val uri = FileProvider.getUriForFile(
             this,
             "com.guruai.app.fileprovider",
             imageFile
         )
-        takePictureLauncher.launch(cameraImageUri!!)
-
-    // ---------- Theme ----------
+        cameraImageUri = uri
+        takePictureLauncher.launch(uri)
+    }
 
     private fun applyTheme() {
         val theme = Constants.THEMES[prefs.themeIndex]
