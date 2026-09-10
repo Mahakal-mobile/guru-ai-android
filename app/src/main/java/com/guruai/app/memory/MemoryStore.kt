@@ -1,29 +1,19 @@
 package com.guruai.app.memory
 
 import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
 
-@Database(entities = [MessageEntity::class], version = 1)
-abstract class AppDatabase : RoomDatabase() {
+class MemoryStore(context: Context) {
+    private val dao = AppDatabase.getDatabase(context).memoryDao()
 
-    abstract fun memoryDao(): MemoryDao
+    suspend fun saveMessage(role: String, content: String) {
+        dao.insert(MessageEntity(role = role, content = content))
+    }
 
-    companion object {
-        @Volatile
-        private var INSTANCE: AppDatabase? = null
+    suspend fun getAllMessages(): List<MessageEntity> {
+        return dao.getAll()
+    }
 
-        fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "guru_ai_memory.db"
-                ).build()
-                INSTANCE = instance
-                instance
-            }
-        }
+    suspend fun clearAll() {
+        dao.clear()
     }
 }
