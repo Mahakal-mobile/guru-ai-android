@@ -10,6 +10,10 @@ class Prefs(context: Context) {
         get() = sp.getString(Constants.KEY_GEMINI, "") ?: ""
         set(v) = sp.edit().putString(Constants.KEY_GEMINI, v).apply()
 
+    var grokKey: String
+        get() = sp.getString(Constants.KEY_GROK, "") ?: ""
+        set(v) = sp.edit().putString(Constants.KEY_GROK, v).apply()
+
     var whatsappToken: String
         get() = sp.getString(Constants.KEY_WHATSAPP, "") ?: ""
         set(v) = sp.edit().putString(Constants.KEY_WHATSAPP, v).apply()
@@ -37,4 +41,8 @@ class Prefs(context: Context) {
     var themeIndex: Int
         get() = sp.getInt(Constants.KEY_THEME, 0)
         set(v) = sp.edit().putInt(Constants.KEY_THEME, v).apply()
+
+    var aiProvider: String
+        get() = sp.getString(Constants.KEY_AI_PROVIDER, Constants.PROVIDER_GEMINI) ?: Constants.PROVIDER_GEMINI
+        set(v) = sp.edit().putString(Constants.KEY_AI_PROVIDER, v).apply()
 }
