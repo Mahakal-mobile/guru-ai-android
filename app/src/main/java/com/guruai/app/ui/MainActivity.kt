@@ -87,8 +87,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            append("user", "[File selected] $uri")
-            append("assistant", "Got your file! (Reading file contents is coming soon.)")
+            analyzeFile(uri)
         }
     }
 
@@ -137,8 +136,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         applyTheme()
     }
 
-    // ---------- AI provider call (used directly and by Agent) ----------
-
     private suspend fun callAi(prompt: String): String {
         return if (prefs.aiProvider == Constants.PROVIDER_GROK) {
             if (prefs.grokKey.isBlank()) {
@@ -150,8 +147,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             GeminiClient(prefs.geminiKey).chat(prompt, emptyList())
         }
     }
-
-    // ---------- Memory (load saved chat on start) ----------
 
     private fun loadHistory() {
         lifecycleScope.launch {
@@ -165,8 +160,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             }
         }
     }
-
-    // ---------- Mic (continuous toggle) ----------
 
     private fun toggleMic() {
         if (isListening) {
@@ -248,8 +241,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         speechRecognizer = null
     }
 
-    // ---------- Attach menu ----------
-
     private fun showAttachMenu() {
         val dialog = BottomSheetDialog(this)
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_attach_menu, null)
@@ -308,7 +299,36 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    // ---------- Theme ----------
+    private fun analyzeFile(uri: Uri) {
+        append("user", "[File selected] Reading…")
+
+        if (!prefs.aiOnlineMode) {
+            append("assistant", "AI Online Mode is off. Turn it on in Settings to read files.")
+            return
+        }
+
+        lifecycleScope.launch {
+            val content = withContext(Dispatchers.IO) {
+                try {
+                    contentResolver.openInputStream(uri)?.use { it.bufferedReader().readText() }
+                } catch (e: Exception) {
+                    null
+                }
+            }
+
+            if (content.isNullOrBlank()) {
+                append("assistant", "Could not read this file. Try a plain text file (.txt) for now — other formats are coming soon.")
+                return@launch
+            }
+
+            val trimmedContent = content.take(6000)
+            val prompt = "Here is the content of a file the user shared:\n\n$trimmedContent\n\nSummarize it and highlight anything important or useful."
+
+            val reply = withContext(Dispatchers.IO) { callAi(prompt) }
+            append("assistant", reply)
+            speak(reply)
+        }
+    }
 
     private fun applyTheme() {
         val theme = Constants.THEMES[prefs.themeIndex]
@@ -349,8 +369,6 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val mode = if (prefs.aiOnlineMode) "Online" else "Offline"
         tvStatus.text = "Accessibility: $a11y · $key · $mode · ${Constants.DEVICE_MODEL}"
     }
-
-    // ---------- Chat ----------
 
     private fun append(role: String, text: String) {
         history.add(role to text)
