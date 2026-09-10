@@ -1,16 +1,25 @@
 package com.guruai.app.ui
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.speech.tts.TextToSpeech
 import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -23,14 +32,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Locale
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var prefs: Prefs
     private lateinit var tvChat: TextView
     private lateinit var tvStatus: TextView
     private lateinit var etInput: EditText
+    private lateinit var btnMic: Button
     private val history = mutableListOf<Pair<String, String>>()
     private var cameraImageUri: Uri? = null
+
+    private var speechRecognizer: SpeechRecognizer? = null
+    private var isListening = false
+    private var tts: TextToSpeech? = null
+
+    private val requestMicPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) startListening() else Toast.makeText(this, "Mic permission needed", Toast.LENGTH_SHORT).show()
+    }
 
     private val takePictureLauncher = registerForActivityResult(
         ActivityResultContracts.TakePicture()
@@ -67,14 +88,24 @@ class MainActivity : AppCompatActivity() {
         tvChat = findViewById(R.id.tvChat)
         tvStatus = findViewById(R.id.tvStatus)
         etInput = findViewById(R.id.etInput)
+        btnMic = findViewById(R.id.btnMic)
+
+        tts = TextToSpeech(this, this)
 
         findViewById<Button>(R.id.btnSettings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         findViewById<Button>(R.id.btnSend).setOnClickListener { send() }
         findViewById<Button>(R.id.btnPlus).setOnClickListener { showAttachMenu() }
+        btnMic.setOnClickListener { toggleMic() }
 
         applyTheme()
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            tts?.language = Locale.getDefault()
+        }
     }
 
     override fun onResume() {
@@ -82,6 +113,88 @@ class MainActivity : AppCompatActivity() {
         refreshStatus()
         applyTheme()
     }
+
+    // ---------- Mic (continuous toggle) ----------
+
+    private fun toggleMic() {
+        if (isListening) {
+            stopListening()
+        } else {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+            } else {
+                startListening()
+            }
+        }
+    }
+
+    private fun startListening() {
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            Toast.makeText(this, "Speech recognition not available on this device", Toast.LENGTH_SHORT).show()
+            return
+        }
+        speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this)
+        speechRecognizer?.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() {
+                // restart automatically to keep listening continuously
+                if (isListening) restartListening()
+            }
+
+            override fun onError(error: Int) {
+                if (isListening) restartListening()
+            }
+
+            override fun onResults(results: Bundle?) {
+                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                val spoken = matches?.firstOrNull()
+                if (!spoken.isNullOrBlank()) {
+                    etInput.setText(spoken)
+                    send()
+                }
+                if (isListening) restartListening()
+            }
+
+            override fun onPartialResults(partialResults: Bundle?) {}
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+
+        isListening = true
+        btnMic.text = "⏹"
+        launchRecognizerIntent()
+    }
+
+    private fun restartListening() {
+        if (isListening) launchRecognizerIntent()
+    }
+
+    private fun launchRecognizerIntent() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+        }
+        try {
+            speechRecognizer?.startListening(intent)
+        } catch (e: Exception) {
+            isListening = false
+            btnMic.text = "🎤"
+        }
+    }
+
+    private fun stopListening() {
+        isListening = false
+        btnMic.text = "🎤"
+        speechRecognizer?.stopListening()
+        speechRecognizer?.destroy()
+        speechRecognizer = null
+    }
+
+    // ---------- Attach menu ----------
 
     private fun showAttachMenu() {
         val dialog = BottomSheetDialog(this)
@@ -115,6 +228,8 @@ class MainActivity : AppCompatActivity() {
         takePictureLauncher.launch(cameraImageUri)
     }
 
+    // ---------- Theme ----------
+
     private fun applyTheme() {
         val theme = Constants.THEMES[prefs.themeIndex]
         val bg = Color.parseColor(theme.background)
@@ -143,6 +258,9 @@ class MainActivity : AppCompatActivity() {
         val btnPlus = findViewById<Button>(R.id.btnPlus)
         btnPlus.setBackgroundColor(surface)
         btnPlus.setTextColor(accent)
+
+        btnMic.setBackgroundColor(surface)
+        btnMic.setTextColor(accent)
     }
 
     private fun refreshStatus() {
@@ -174,6 +292,18 @@ class MainActivity : AppCompatActivity() {
                 GeminiClient(prefs.geminiKey).chat(text, history.dropLast(1))
             }
             append("assistant", reply)
+            speak(reply)
         }
+    }
+
+    private fun speak(text: String) {
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "guru_reply")
+    }
+
+    override fun onDestroy() {
+        speechRecognizer?.destroy()
+        tts?.stop()
+        tts?.shutdown()
+        super.onDestroy()
     }
 }
