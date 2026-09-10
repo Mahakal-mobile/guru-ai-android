@@ -23,6 +23,10 @@ import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.guruai.app.R
+import com.guruai.app.agent.AgentLoop
+import com.guruai.app.agent.GetTimeTool
+import com.guruai.app.agent.ToolRegistry
+import com.guruai.app.agent.WebSearchTool
 import com.guruai.app.data.GeminiClient
 import com.guruai.app.data.GrokClient
 import com.guruai.app.data.Prefs
@@ -48,6 +52,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var speechRecognizer: SpeechRecognizer? = null
     private var isListening = false
     private var tts: TextToSpeech? = null
+
+    private lateinit var toolRegistry: ToolRegistry
+    private lateinit var agentLoop: AgentLoop
 
     private val requestMicPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -91,6 +98,15 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         prefs = Prefs(this)
         memoryStore = MemoryStore(this)
 
+        toolRegistry = ToolRegistry().apply {
+            register(GetTimeTool())
+            register(WebSearchTool())
+        }
+        agentLoop = AgentLoop(
+            llmClient = { prompt -> callAi(prompt) },
+            toolRegistry = toolRegistry
+        )
+
         tvChat = findViewById(R.id.tvChat)
         tvStatus = findViewById(R.id.tvStatus)
         etInput = findViewById(R.id.etInput)
@@ -119,6 +135,20 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         super.onResume()
         refreshStatus()
         applyTheme()
+    }
+
+    // ---------- AI provider call (used directly and by Agent) ----------
+
+    private suspend fun callAi(prompt: String): String {
+        return if (prefs.aiProvider == Constants.PROVIDER_GROK) {
+            if (prefs.grokKey.isBlank()) {
+                "xAI (Grok) API key missing. Add it in Settings."
+            } else {
+                GrokClient(prefs.grokKey).chat(prompt, emptyList())
+            }
+        } else {
+            GeminiClient(prefs.geminiKey).chat(prompt, emptyList())
+        }
     }
 
     // ---------- Memory (load saved chat on start) ----------
@@ -345,21 +375,31 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             return
         }
 
+        val needsTool = text.contains("time", ignoreCase = true) ||
+            text.contains("समय", ignoreCase = true) ||
+            text.contains("search", ignoreCase = true) ||
+            text.contains("खोज", ignoreCase = true)
+
         lifecycleScope.launch {
             val reply = withContext(Dispatchers.IO) {
-                if (prefs.aiProvider == Constants.PROVIDER_GROK) {
-                    if (prefs.grokKey.isBlank()) {
-                        "xAI (Grok) API key missing. Add it in Settings."
-                    } else {
-                        GrokClient(prefs.grokKey).chat(text, history.dropLast(1))
-                    }
+                if (needsTool) {
+                    agentLoop.run(text)
                 } else {
-                    GeminiClient(prefs.geminiKey).chat(text, history.dropLast(1))
+                    callAi(buildPromptWithHistory(text))
                 }
             }
             append("assistant", reply)
             speak(reply)
         }
+    }
+
+    private fun buildPromptWithHistory(userMessage: String): String {
+        if (history.size <= 1) return userMessage
+        val recent = history.dropLast(1).takeLast(10).joinToString("\n") { (role, text) ->
+            val label = if (role == "user") "User" else "Guru"
+            "$label: $text"
+        }
+        return "Recent conversation:\n$recent\n\nUser: $userMessage"
     }
 
     private fun speak(text: String) {
