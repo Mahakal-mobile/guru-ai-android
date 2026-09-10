@@ -61,8 +61,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     ) { success ->
         val uri = cameraImageUri
         if (success && uri != null) {
-            append("user", "[Photo captured] $uri")
-            append("assistant", "Got your photo! (Analyzing images is coming soon.)")
+            analyzeImage(uri, "captured")
         }
     }
 
@@ -70,8 +69,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
-            append("user", "[Photo selected] $uri")
-            append("assistant", "Got your photo! (Analyzing images is coming soon.)")
+            analyzeImage(uri, "selected")
         }
     }
 
@@ -229,6 +227,31 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         )
         cameraImageUri = uri
         takePictureLauncher.launch(uri)
+    }
+
+    private fun analyzeImage(uri: Uri, source: String) {
+        append("user", "[Photo $source] Analyzing…")
+
+        if (!prefs.aiOnlineMode) {
+            append("assistant", "AI Online Mode is off. Turn it on in Settings to analyze photos.")
+            return
+        }
+        if (prefs.geminiKey.isBlank()) {
+            append("assistant", "Add your Gemini API key in Settings first.")
+            return
+        }
+
+        lifecycleScope.launch {
+            val reply = withContext(Dispatchers.IO) {
+                GeminiClient(prefs.geminiKey).analyzeImage(
+                    contentResolver,
+                    uri,
+                    "Describe what you see in this image and give useful, relevant information or help based on it."
+                )
+            }
+            append("assistant", reply)
+            speak(reply)
+        }
     }
 
     private fun applyTheme() {
