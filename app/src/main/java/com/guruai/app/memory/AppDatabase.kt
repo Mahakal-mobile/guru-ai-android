@@ -1,18 +1,29 @@
 package com.guruai.app.memory
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.Query
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
 
-@Dao
-interface MemoryDao {
+@Database(entities = [MessageEntity::class], version = 1)
+abstract class AppDatabase : RoomDatabase() {
 
-    @Insert
-    suspend fun insert(message: MessageEntity)
+    abstract fun memoryDao(): MemoryDao
 
-    @Query("SELECT * FROM messages ORDER BY timestamp ASC")
-    suspend fun getAll(): List<MessageEntity>
+    companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
 
-    @Query("DELETE FROM messages")
-    suspend fun clear()
+        fun getDatabase(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "guru_ai_memory.db"
+                ).build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
 }
